@@ -8,6 +8,6 @@ Minimum C++ Version: C++17.
 
 Dependencies: [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page).
 
-Visualization of the cell dynamics is implemented in https://github.com/raven91/deformable_cell_model_rendering
+Visualization of the cell dynamics is implemented in [@deformable_cell_model_rendering](https://github.com/raven91/deformable_cell_model_rendering).
 
-Initial cell mesh can be generated as in https://github.com/raven91/deformable_cell_model_mesh_generation
+Initial cell mesh can be generated as in [@deformable_cell_model_mesh_generation](https://github.com/raven91/deformable_cell_model_mesh_generation).

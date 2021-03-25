@@ -7,3 +7,7 @@ on the work of [Van Liedekerke et al. 2020](https://link.springer.com/article/10
 Minimum C++ Version: C++17.
 
 Dependencies: [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page).
+
+Visualization of the cell dynamics is implemented in https://github.com/raven91/deformable_cell_model_rendering
+
+Initial cell mesh can be generated as in https://github.com/raven91/deformable_cell_model_mesh_generation

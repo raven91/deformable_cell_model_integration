@@ -63,11 +63,11 @@ double Parameters::GetMorphogenStrength() const
   return parameter_dictionary_.at("morphogen_strength");
 }
 
-std::array<double, kDim> Parameters::GetMorphogenDirection() const
+VectorType Parameters::GetMorphogenDirection() const
 {
-  return std::array<double, kDim>{parameter_dictionary_.at("morphogen_direction_x"),
-                                  parameter_dictionary_.at("morphogen_direction_y"),
-                                  parameter_dictionary_.at("morphogen_direction_z")};
+  return VectorType{parameter_dictionary_.at("morphogen_direction_x"),
+                    parameter_dictionary_.at("morphogen_direction_y"),
+                    parameter_dictionary_.at("morphogen_direction_z")};
 }
 
 double Parameters::GetRestLength() const

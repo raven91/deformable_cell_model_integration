@@ -41,7 +41,7 @@ Observer::~Observer()
 void Observer::SaveNodes(const CellMesh &cell_mesh)
 {
   std::ostringstream output_buffer;
-  for (const std::array<double, kDim> &node : cell_mesh.GetNodes())
+  for (const VectorType &node : cell_mesh.GetNodes())
   {
     output_buffer << node[0] << '\t' << node[1] << '\t' << node[2] << '\t';
   } // node
@@ -53,7 +53,7 @@ void Observer::SaveNodes(const CellMesh &cell_mesh)
 void Observer::SaveNormalsForNodes(const CellMesh &cell_mesh)
 {
   std::ostringstream output_buffer;
-  for (const std::array<double, kDim> &normal : cell_mesh.GetNormalsForNodes())
+  for (const VectorType &normal : cell_mesh.GetNormalsForNodes())
   {
     output_buffer << normal[0] << '\t' << normal[1] << '\t' << normal[2] << '\t';
   } // normal
@@ -65,7 +65,7 @@ void Observer::SaveNormalsForNodes(const CellMesh &cell_mesh)
 void Observer::SaveFaces(const CellMesh &cell_mesh)
 {
   std::ostringstream output_buffer;
-  for (const std::array<int, kFaceDim> &face : cell_mesh.GetFaces())
+  for (const FaceType &face : cell_mesh.GetFaces())
   {
     for (int node_index : face)
     {

@@ -22,12 +22,12 @@ class CellMesh
   CellMesh(const std::string &off_fine_name, const Parameters &parameters);
   ~CellMesh();
 
-  const std::vector<std::array<double, kDim>> &GetNodes() const;
-  std::vector<std::array<double, kDim>> &GetNodes();
-  const std::vector<std::array<int, kFaceDim>> &GetFaces() const;
+  const std::vector<VectorType> &GetNodes() const;
+  std::vector<VectorType> &GetNodes();
+  const std::vector<FaceType> &GetFaces() const;
   const std::vector<std::set<int>> &GetAdjacentFacesForNodes() const;
-  const std::vector<std::array<double, kDim>> &GetNormalsForNodes() const;
-  const std::vector<std::array<double, kDim>> &GetNormalsForFaces() const;
+  const std::vector<VectorType> &GetNormalsForNodes() const;
+  const std::vector<VectorType> &GetNormalsForFaces() const;
 
   int GetNumNodes() const;
   int GetNumFaces() const;
@@ -38,22 +38,22 @@ class CellMesh
   void SetInitialVolume(double new_volume);
   double CalculateCellSurfaceArea() const;
   double CalculateCellVolume() const;
-  const std::vector<std::array<double, kDim>> &CalculateFaceNormals() const;
-  const std::vector<std::array<double, kDim>> &CalculateNodeNormals() const;
+  const std::vector<VectorType> &CalculateFaceNormals() const;
+  const std::vector<VectorType> &CalculateNodeNormals() const;
 
  private:
 
-  std::vector<std::array<double, kDim>> nodes_;
-  std::vector<std::array<int, kFaceDim>> faces_;
-  std::vector<std::array<int, kEdgeDim>> edges_;
+  std::vector<VectorType> nodes_;
+  std::vector<FaceType> faces_;
+  std::vector<EdgeType> edges_;
   std::vector<std::set<int>> adjacent_faces_for_nodes_;
 
   mutable std::vector<double> surface_areas_for_faces_;
   mutable std::vector<double> surface_areas_for_nodes_;
   double initial_cell_surface_area_;
   double initial_cell_volume_;
-  mutable std::vector<std::array<double, kDim>> normals_for_faces_;
-  mutable std::vector<std::array<double, kDim>> normals_for_nodes_;
+  mutable std::vector<VectorType> normals_for_faces_;
+  mutable std::vector<VectorType> normals_for_nodes_;
 
   double FaceArea(int face_index) const;
   void MakeFacesOriented();

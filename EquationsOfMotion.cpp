@@ -44,7 +44,7 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
   std::vector<Eigen::Triplet<double>> triplet_list;
 
   // \Gamma_{nn}^{cc}
-  const std::vector<std::array<int, kFaceDim>> &faces = cell_mesh.GetFaces();
+  const std::vector<FaceType> &faces = cell_mesh.GetFaces();
   const std::vector<std::set<int>> &adjacent_faces = cell_mesh.GetAdjacentFacesForNodes();
   for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
   {
@@ -92,8 +92,8 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
 //  double p = -parameters_.GetCellBulkModulus() * std::log(cell_mesh.CalculateCellVolume() / cell_mesh.GetInitialVolume());
   double p = -parameters_.GetCellBulkModulus() * (cell_mesh.CalculateCellVolume() - cell_mesh.GetInitialVolume())
       / cell_mesh.GetInitialVolume();
-  const std::vector<std::array<double, kDim>> &node_normals = cell_mesh.CalculateNodeNormals();
-  const std::vector<std::array<double, kDim>> &face_normals = cell_mesh.GetNormalsForFaces();
+  const std::vector<VectorType> &node_normals = cell_mesh.CalculateNodeNormals();
+  const std::vector<VectorType> &face_normals = cell_mesh.GetNormalsForFaces();
   for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
   {
     const int node_idx = i * kDim; // beginning of i-th node values in b
@@ -109,7 +109,7 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
           / cell_mesh.GetInitialSurfaceArea();
   for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
   {
-    std::array<double, kDim> force{0.0};
+    VectorType force{0.0};
     for (int face_index : adjacent_faces[i])
     {
       force[0] += face_normals[face_index][0];
@@ -140,26 +140,32 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
   } // i
 
   // F_{morphogen}
-  const double morphogen_strength = parameters_.GetMorphogenStrength();
-//  const std::array<double, kDim> morphogen_direction(parameters_.GetMorphogenDirection());
-  const std::vector<std::array<double, kDim>> morphogen_directions = {{1.0, 0.0, 0.0}};//, {-1.0, 0.0, 0.0}};
+//  const double morphogen_strength = parameters_.GetMorphogenStrength();
+//  const VectorType morphogen_direction(parameters_.GetMorphogenDirection());
+  const std::vector<VectorType> morphogen_directions =
+      {{1.0, 0.0, 0.0}};//, {-0.5, 0.86, 0.0}};//, {0.0, -1.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}};
+  const std::vector<double> morphogen_strengths = {0e-11};//, 8e-11, 2e-11, 2e-11, 2e-11};
   double dot_product = 0.0, nonlinear_impact = 0.0;
   for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
   {
     const int node_idx = i * kDim; // beginning of i-th node values in b
-    for (const std::array<double, kDim> &morphogen_direction : morphogen_directions)
+//    for (const VectorType &morphogen_direction : morphogen_directions)
+    for (int m = 0; m < morphogen_directions.size(); ++m)
     {
+      const VectorType &morphogen_direction = morphogen_directions[m];
+      const double morphogen_strength = morphogen_strengths[m];
       dot_product = morphogen_direction[0] * node_normals[i][0] + morphogen_direction[1] * node_normals[i][1]
           + morphogen_direction[2] * node_normals[i][2];
       if (dot_product < 0.0)
       {
-//        nonlinear_impact = std::exp(-10.0 * (1.0 - std::abs(dot_product)) * (1.0 - std::abs(dot_product)));
-        nonlinear_impact = std::exp(-10.0 * (1.0 - std::abs(dot_product)));
+//        nonlinear_impact = std::abs(dot_product);
+//        nonlinear_impact = std::exp(-8.0 * (1.0 - std::abs(dot_product)) * (1.0 - std::abs(dot_product)));
+        nonlinear_impact = std::exp(-5.0 * (1.0 - std::abs(dot_product)));
         b[node_idx] += morphogen_strength * morphogen_direction[0] * nonlinear_impact;
         b[node_idx + 1] += morphogen_strength * morphogen_direction[1] * nonlinear_impact;
         b[node_idx + 2] += morphogen_strength * morphogen_direction[2] * nonlinear_impact;
       }
-    }
+    } // m
   } // i
 }
 
@@ -175,12 +181,12 @@ void EquationsOfMotion::UpdatePositionsAndVelocities(CellMesh &cell_mesh,
   conjugate_solver.compute(A);
   Eigen::VectorXd velocities = conjugate_solver.solve(b);
 
-  std::vector<std::array<double, kDim>> &nodes = cell_mesh.GetNodes();
-  std::array<double, kDim> velocity{};
+  std::vector<VectorType> &nodes = cell_mesh.GetNodes();
+  VectorType velocity{};
   for (int i = 0; i < nodes.size(); ++i)
   {
     const int node_idx = i * kDim; // beginning of i-th node values in v
-    velocity = std::array<double, kDim>{velocities[node_idx], velocities[node_idx + 1], velocities[node_idx + 2]};
+    velocity = VectorType{velocities[node_idx], velocities[node_idx + 1], velocities[node_idx + 2]};
 
     nodes[i][0] += velocity[0] * parameters_.GetDt();
     nodes[i][1] += velocity[1] * parameters_.GetDt();

@@ -26,7 +26,7 @@ class Parameters
   double GetCellEcmFrictionPerSurfaceArea() const;
   double GetMotility() const;
   double GetMorphogenStrength() const;
-  std::array<double, kDim> GetMorphogenDirection() const;
+  VectorType GetMorphogenDirection() const;
   double GetRestLength() const;
 
  private:

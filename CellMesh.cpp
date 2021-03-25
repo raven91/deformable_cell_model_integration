@@ -25,9 +25,9 @@ CellMesh::CellMesh() :
 }
 
 CellMesh::CellMesh(int n_nodes, int n_faces, int n_edges) :
-    nodes_(n_nodes, std::array<double, kDim>{0.0}),
-    faces_(n_faces, std::array<int, kFaceDim>{-1}),
-    edges_(n_edges, std::array<int, kEdgeDim>{-1}),
+    nodes_(n_nodes, VectorType{0.0}),
+    faces_(n_faces, FaceType{-1}),
+    edges_(n_edges, EdgeType{-1}),
     adjacent_faces_for_nodes_(),
     surface_areas_for_nodes_(),
     normals_for_faces_(),
@@ -107,17 +107,17 @@ CellMesh::~CellMesh()
   edges_.clear();
 }
 
-const std::vector<std::array<double, kDim>> &CellMesh::GetNodes() const
+const std::vector<VectorType> &CellMesh::GetNodes() const
 {
   return nodes_;
 }
 
-std::vector<std::array<double, kDim>> &CellMesh::GetNodes()
+std::vector<VectorType> &CellMesh::GetNodes()
 {
   return nodes_;
 }
 
-const std::vector<std::array<int, kFaceDim>> &CellMesh::GetFaces() const
+const std::vector<FaceType> &CellMesh::GetFaces() const
 {
   return faces_;
 }
@@ -127,12 +127,12 @@ const std::vector<std::set<int>> &CellMesh::GetAdjacentFacesForNodes() const
   return adjacent_faces_for_nodes_;
 }
 
-const std::vector<std::array<double, kDim>> &CellMesh::GetNormalsForNodes() const
+const std::vector<VectorType> &CellMesh::GetNormalsForNodes() const
 {
   return normals_for_nodes_;
 }
 
-const std::vector<std::array<double, kDim>> &CellMesh::GetNormalsForFaces() const
+const std::vector<VectorType> &CellMesh::GetNormalsForFaces() const
 {
   return normals_for_faces_;
 }
@@ -178,7 +178,7 @@ const std::vector<double> &CellMesh::CalculateNodeSurfaceAreas() const
 double CellMesh::FaceArea(int face_index) const
 {
   int n_0 = faces_[face_index][0], n_1 = faces_[face_index][1], n_2 = faces_[face_index][2];
-  const std::array<double, kDim> &p_0 = nodes_[n_0], &p_1 = nodes_[n_1], &p_2 = nodes_[n_2];
+  const VectorType &p_0 = nodes_[n_0], &p_1 = nodes_[n_1], &p_2 = nodes_[n_2];
   double a = std::hypot(p_0[0] - p_1[0], p_0[1] - p_1[1], p_0[2] - p_1[2]);
   double b = std::hypot(p_1[0] - p_2[0], p_1[1] - p_2[1], p_1[2] - p_2[2]);
   double c = std::hypot(p_2[0] - p_0[0], p_2[1] - p_0[1], p_2[2] - p_0[2]);
@@ -213,7 +213,7 @@ double CellMesh::CalculateCellSurfaceArea() const
 double CellMesh::CalculateCellVolume() const
 {
   std::array<double, kDim> center_of_mass{0.0, 0.0, 0.0};
-  for (const std::array<double, kDim> &node : nodes_)
+  for (const VectorType &node : nodes_)
   {
     center_of_mass[0] += node[0];
     center_of_mass[1] += node[1];
@@ -226,7 +226,7 @@ double CellMesh::CalculateCellVolume() const
   double volume = 0.0;
   Eigen::Vector3d p_0{center_of_mass[0], center_of_mass[1], center_of_mass[2]}, p_1, p_2, p_3;
   int n_1, n_2, n_3;
-  for (const std::array<int, kFaceDim> &face : faces_)
+  for (const FaceType &face : faces_)
   {
     n_1 = face[0];
     n_2 = face[1];
@@ -241,8 +241,8 @@ double CellMesh::CalculateCellVolume() const
 
 void CellMesh::MakeFacesOriented()
 {
-  std::array<double, kDim> center_of_mass{0.0, 0.0, 0.0};
-  for (const std::array<double, kDim> &node : nodes_)
+  VectorType center_of_mass{0.0, 0.0, 0.0};
+  for (const VectorType &node : nodes_)
   {
     center_of_mass[0] += node[0];
     center_of_mass[1] += node[1];
@@ -254,7 +254,7 @@ void CellMesh::MakeFacesOriented()
 
   Eigen::Vector3d p_0{center_of_mass[0], center_of_mass[1], center_of_mass[2]}, p_1, p_2, p_3, p_12, p_23;
   int n_1, n_2, n_3;
-  for (std::array<int, kFaceDim> &face : faces_)
+  for (FaceType &face : faces_)
   {
     n_1 = face[0];
     n_2 = face[1];
@@ -266,7 +266,7 @@ void CellMesh::MakeFacesOriented()
     p_23 = p_3 - p_2;
     if ((p_1 - p_0).dot(p_12.cross(p_23)) < 0.0)
     {
-      face = std::array<int, kFaceDim>{n_1, n_3, n_2};
+      face = FaceType{n_1, n_3, n_2};
     }
   } // face
 }
@@ -274,9 +274,9 @@ void CellMesh::MakeFacesOriented()
 /*
  * Requires faces to be CCW
  */
-const std::vector<std::array<double, kDim>> &CellMesh::CalculateFaceNormals() const
+const std::vector<VectorType> &CellMesh::CalculateFaceNormals() const
 {
-  normals_for_faces_ = std::vector<std::array<double, kDim>>(faces_.size(), {0.0});
+  normals_for_faces_ = std::vector<VectorType>(faces_.size(), {0.0});
   Eigen::Vector3d p_1, p_2, p_3, p_12, p_23;
   Eigen::Vector3d normal;
   int n_1, n_2, n_3;
@@ -299,13 +299,13 @@ const std::vector<std::array<double, kDim>> &CellMesh::CalculateFaceNormals() co
 /*
  * Requires face normals
  */
-const std::vector<std::array<double, kDim>> &CellMesh::CalculateNodeNormals() const
+const std::vector<VectorType> &CellMesh::CalculateNodeNormals() const
 {
   CalculateFaceNormals();
-  normals_for_nodes_ = std::vector<std::array<double, kDim>>(nodes_.size(), {0.0});
+  normals_for_nodes_ = std::vector<VectorType>(nodes_.size(), {0.0});
   for (int i = 0; i < nodes_.size(); ++i)
   {
-    std::array<double, kDim> node_normal{0.0};
+    VectorType node_normal{0.0};
     for (int face_index : adjacent_faces_for_nodes_[i])
     {
       node_normal[0] += normals_for_faces_[face_index][0];

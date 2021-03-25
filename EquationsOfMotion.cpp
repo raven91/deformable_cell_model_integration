@@ -111,14 +111,8 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
     VectorType force = VectorType::Zero();
     for (int face_index : adjacent_faces[i])
     {
-//      force[0] += face_normals[face_index][0];
-//      force[1] += face_normals[face_index][1];
-//      force[2] += face_normals[face_index][2];
       force += face_normals[face_index];
     } // face_index
-//    force[0] *= area_conservation_force;
-//    force[1] *= area_conservation_force;
-//    force[2] *= area_conservation_force;
     force *= area_conservation_force;
 
     const int node_idx = i * kDim; // beginning of i-th node values in b
@@ -155,8 +149,6 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
     {
       const VectorType &morphogen_direction = morphogen_directions[m];
       const double morphogen_strength = morphogen_strengths[m];
-//      dot_product = morphogen_direction[0] * node_normals[i][0] + morphogen_direction[1] * node_normals[i][1]
-//          + morphogen_direction[2] * node_normals[i][2];
       dot_product = morphogen_direction.dot(node_normals[i]);
       if (dot_product < 0.0)
       {
@@ -189,10 +181,6 @@ void EquationsOfMotion::UpdatePositionsAndVelocities(CellMesh &cell_mesh,
   {
     const int node_idx = i * kDim; // beginning of i-th node values in v
     velocity = VectorType{velocities[node_idx], velocities[node_idx + 1], velocities[node_idx + 2]};
-
-//    nodes[i][0] += velocity[0] * parameters_.GetDt();
-//    nodes[i][1] += velocity[1] * parameters_.GetDt();
-//    nodes[i][2] += velocity[2] * parameters_.GetDt();
     nodes[i] += velocity * parameters_.GetDt();
   } // i
 }

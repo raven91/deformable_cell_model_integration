@@ -24,7 +24,7 @@ CellMesh::CellMesh() :
 }
 
 CellMesh::CellMesh(int n_nodes, int n_faces, int n_edges) :
-    nodes_(n_nodes, VectorType{0.0, 0.0, 0.0}),
+    nodes_(n_nodes, VectorType::Zero()),
     faces_(n_faces, FaceType{-1}),
     edges_(n_edges, EdgeType{-1}),
     adjacent_faces_for_nodes_(),
@@ -181,10 +181,9 @@ double CellMesh::FaceArea(int face_index) const
 {
   int n_0 = faces_[face_index][0], n_1 = faces_[face_index][1], n_2 = faces_[face_index][2];
   const VectorType &p_0 = nodes_[n_0], &p_1 = nodes_[n_1], &p_2 = nodes_[n_2];
-  // todo: rewrite using Eigen's functionality
-  double a = (p_0 - p_1).norm();//std::hypot(p_0.x() - p_1.x(), p_0.y() - p_1.y(), p_0.z() - p_1.z());
-  double b = (p_1 - p_2).norm();//std::hypot(p_1.x() - p_2.x(), p_1.y() - p_2.y(), p_1.z() - p_2.z());
-  double c = (p_2 - p_0).norm();//std::hypot(p_2.x() - p_0.x(), p_2.y() - p_0.y(), p_2.z() - p_0.z());
+  double a = (p_0 - p_1).norm();
+  double b = (p_1 - p_2).norm();
+  double c = (p_2 - p_0).norm();
   double s = (a + b + c) / 2.0;
   double area = std::sqrt(s * (s - a) * (s - b) * (s - c));
   return area;
@@ -218,14 +217,8 @@ double CellMesh::CalculateCellVolume() const
   VectorType center_of_mass{0.0, 0.0, 0.0};
   for (const VectorType &node : nodes_)
   {
-//    center_of_mass[0] += node[0];
-//    center_of_mass[1] += node[1];
-//    center_of_mass[2] += node[2];
     center_of_mass += node;
   } // node
-//  center_of_mass[0] /= nodes_.size();
-//  center_of_mass[1] /= nodes_.size();
-//  center_of_mass[2] /= nodes_.size();
   center_of_mass /= nodes_.size();
 
   double volume = 0.0;
@@ -236,9 +229,6 @@ double CellMesh::CalculateCellVolume() const
     n_1 = face[0];
     n_2 = face[1];
     n_3 = face[2];
-//    p_1 = Eigen::Vector3d(nodes_[n_1][0], nodes_[n_1][1], nodes_[n_1][2]);
-//    p_2 = Eigen::Vector3d(nodes_[n_2][0], nodes_[n_2][1], nodes_[n_2][2]);
-//    p_3 = Eigen::Vector3d(nodes_[n_3][0], nodes_[n_3][1], nodes_[n_3][2]);
     p_1 = nodes_[n_1];
     p_2 = nodes_[n_2];
     p_3 = nodes_[n_3];
@@ -249,17 +239,11 @@ double CellMesh::CalculateCellVolume() const
 
 void CellMesh::MakeFacesOriented()
 {
-  VectorType center_of_mass{0.0, 0.0, 0.0};
+  VectorType center_of_mass = VectorType::Zero();
   for (const VectorType &node : nodes_)
   {
-//    center_of_mass[0] += node[0];
-//    center_of_mass[1] += node[1];
-//    center_of_mass[2] += node[2];
     center_of_mass += node;
   } // node
-//  center_of_mass[0] /= nodes_.size();
-//  center_of_mass[1] /= nodes_.size();
-//  center_of_mass[2] /= nodes_.size();
   center_of_mass /= nodes_.size();
 
   Eigen::Vector3d p_0(center_of_mass), p_1, p_2, p_3, p_12, p_23;
@@ -269,9 +253,6 @@ void CellMesh::MakeFacesOriented()
     n_1 = face[0];
     n_2 = face[1];
     n_3 = face[2];
-//    p_1 = Eigen::Vector3d(nodes_[n_1][0], nodes_[n_1][1], nodes_[n_1][2]);
-//    p_2 = Eigen::Vector3d(nodes_[n_2][0], nodes_[n_2][1], nodes_[n_2][2]);
-//    p_3 = Eigen::Vector3d(nodes_[n_3][0], nodes_[n_3][1], nodes_[n_3][2]);
     p_1 = nodes_[n_1];
     p_2 = nodes_[n_2];
     p_3 = nodes_[n_3];
@@ -298,16 +279,10 @@ const std::vector<VectorType> &CellMesh::CalculateFaceNormals() const
     n_1 = faces_[f][0];
     n_2 = faces_[f][1];
     n_3 = faces_[f][2];
-//    p_1 = Eigen::Vector3d(nodes_[n_1][0], nodes_[n_1][1], nodes_[n_1][2]);
-//    p_2 = Eigen::Vector3d(nodes_[n_2][0], nodes_[n_2][1], nodes_[n_2][2]);
-//    p_3 = Eigen::Vector3d(nodes_[n_3][0], nodes_[n_3][1], nodes_[n_3][2]);
     p_1 = nodes_[n_1];
     p_2 = nodes_[n_2];
     p_3 = nodes_[n_3];
     normal = (p_2 - p_1).cross(p_3 - p_2).normalized();
-//    normals_for_faces_[f][0] = normal[0];
-//    normals_for_faces_[f][1] = normal[1];
-//    normals_for_faces_[f][2] = normal[2];
     normals_for_faces_[f] = normal;
   } // f
   return normals_for_faces_;
@@ -325,17 +300,9 @@ const std::vector<VectorType> &CellMesh::CalculateNodeNormals() const
     VectorType node_normal = VectorType::Zero();
     for (int face_index : adjacent_faces_for_nodes_[i])
     {
-//      node_normal[0] += normals_for_faces_[face_index][0];
-//      node_normal[1] += normals_for_faces_[face_index][1];
-//      node_normal[2] += normals_for_faces_[face_index][2];
       node_normal += normals_for_faces_[face_index];
     } // face_index
     // todo: rewrite using Eigen's functionality
-    /*double norm = std::hypot(node_normal[0], node_normal[1], node_normal[2]);
-//    node_normal[0] /= norm;
-//    node_normal[1] /= norm;
-//    node_normal[2] /= norm;
-    node_normal /= norm;*/
     normals_for_nodes_[i] = node_normal.normalized();
   } // i
   return normals_for_nodes_;

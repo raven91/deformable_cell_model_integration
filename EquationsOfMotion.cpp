@@ -45,7 +45,7 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
 
   // \Gamma_{nn}^{cc}
   const std::vector<FaceType> &faces = cell_mesh.GetFaces();
-  const std::vector<std::set<int>> &adjacent_faces = cell_mesh.GetAdjacentFacesForNodes();
+  const std::vector<IndexSet> &adjacent_faces = cell_mesh.GetAdjacentFacesForNodes();
   for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
   {
     // find adjacent neighbors

@@ -122,7 +122,7 @@ const std::vector<FaceType> &CellMesh::GetFaces() const
   return faces_;
 }
 
-const std::vector<std::set<int>> &CellMesh::GetAdjacentFacesForNodes() const
+const std::vector<IndexSet> &CellMesh::GetAdjacentFacesForNodes() const
 {
   return adjacent_faces_for_nodes_;
 }

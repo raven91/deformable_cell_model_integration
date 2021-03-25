@@ -25,7 +25,7 @@ class CellMesh
   const std::vector<VectorType> &GetNodes() const;
   std::vector<VectorType> &GetNodes();
   const std::vector<FaceType> &GetFaces() const;
-  const std::vector<std::set<int>> &GetAdjacentFacesForNodes() const;
+  const std::vector<IndexSet> &GetAdjacentFacesForNodes() const;
   const std::vector<VectorType> &GetNormalsForNodes() const;
   const std::vector<VectorType> &GetNormalsForFaces() const;
 
@@ -46,7 +46,7 @@ class CellMesh
   std::vector<VectorType> nodes_;
   std::vector<FaceType> faces_;
   std::vector<EdgeType> edges_;
-  std::vector<std::set<int>> adjacent_faces_for_nodes_;
+  std::vector<IndexSet> adjacent_faces_for_nodes_;
 
   mutable std::vector<double> surface_areas_for_faces_;
   mutable std::vector<double> surface_areas_for_nodes_;

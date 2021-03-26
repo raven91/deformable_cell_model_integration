@@ -20,8 +20,10 @@ EquationsOfMotion::~EquationsOfMotion()
 
 }
 
-void EquationsOfMotion::DoStep(CellMesh &cell_mesh)
+void EquationsOfMotion::DoStep(std::vector<CellMesh> &cell_meshes)
 {
+  CellMesh &cell_mesh = cell_meshes.front();
+
   const int n = cell_mesh.GetNumNodes() * kDim;
   Eigen::VectorXd b = Eigen::VectorXd::Zero(n);
   Eigen::SparseMatrix<double> A(n, n);

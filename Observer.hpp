@@ -10,6 +10,7 @@
 
 #include <string>
 #include <fstream>
+#include <vector>
 
 class Observer
 {
@@ -18,9 +19,9 @@ class Observer
   Observer();
   ~Observer();
 
-  void SaveNodes(const CellMesh &cell_mesh);
-  void SaveNormalsForNodes(const CellMesh &cell_mesh);
-  static void SaveFaces(const CellMesh &cell_mesh);
+  void SaveNodes(const std::vector<CellMesh> &cell_meshes);
+  void SaveNormalsForNodes(const std::vector<CellMesh> &cell_meshes);
+  static void SaveFaces(const std::vector<CellMesh> &cell_meshes);
 
  private:
 

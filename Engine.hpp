@@ -8,6 +8,8 @@
 #include "CellMesh.hpp"
 #include "Parameters.hpp"
 
+#include <vector>
+
 class Engine
 {
  public:
@@ -19,8 +21,9 @@ class Engine
 
  private:
 
-  CellMesh cell_mesh_;
   Parameters parameters_;
+//  CellMesh cell_mesh_;
+  std::vector<CellMesh> cell_meshes_;
 
 };
 

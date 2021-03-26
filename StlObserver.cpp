@@ -18,6 +18,14 @@ StlObserver::~StlObserver()
 
 }
 
+void StlObserver::SaveCellMeshes(const std::vector<CellMesh> &cell_meshes) const
+{
+  for (int cell_idx = 0; cell_idx < cell_meshes.size(); ++cell_idx)
+  {
+    SaveCellMesh(cell_meshes[cell_idx]);
+  } // cell_idx
+}
+
 void StlObserver::SaveCellMesh(const CellMesh &cell_mesh) const
 {
   std::string file_name("/Users/nikita/Documents/Projects/DeformableCellModel/Cell_Mesh.stl");

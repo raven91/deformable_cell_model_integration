@@ -9,6 +9,7 @@
 #include "CellMesh.hpp"
 #include "Parameters.hpp"
 
+#include <vector>
 #include <random>
 #include <eigen3/Eigen/Sparse>
 #include <eigen3/Eigen/IterativeLinearSolvers>
@@ -20,7 +21,7 @@ class EquationsOfMotion
   explicit EquationsOfMotion(const Parameters &parameters);
   ~EquationsOfMotion();
 
-  void DoStep(CellMesh &cell_mesh);
+  void DoStep(std::vector<CellMesh> &cell_meshes);
 
  private:
 

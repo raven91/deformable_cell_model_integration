@@ -15,10 +15,7 @@ EquationsOfMotion::EquationsOfMotion(const Parameters &parameters) :
 
 }
 
-EquationsOfMotion::~EquationsOfMotion()
-{
-
-}
+EquationsOfMotion::~EquationsOfMotion() = default;
 
 /*
  * Formulate the model in the form A v = b, and solve for v,
@@ -33,6 +30,27 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
   std::vector<Eigen::Triplet<double>> triplet_list;
 
   // \Gamma_{nn}^{cc}
+  NodeToNodeFrictionSameCell(cell_mesh, triplet_list);
+
+  // \Gamma_{ns}
+  NodeToExtracellularMatrixFriction(cell_mesh, triplet_list);
+
+  A.setFromTriplets(triplet_list.begin(), triplet_list.end());
+
+  // fill b
+  // F_{vol}
+  VolumePreservationForce(cell_mesh, b);
+
+  // F_{T}
+  AreaConservationForce(cell_mesh, b);
+
+  // F_{migration} = F_{random} + F_{morphogen}
+  CellMigrationForce(cell_mesh, b);
+}
+
+void EquationsOfMotion::NodeToNodeFrictionSameCell(const CellMesh &cell_mesh,
+                                                   std::vector<Eigen::Triplet<double>> &triplet_list)
+{
   const std::vector<FaceType> &faces = cell_mesh.GetFaces();
   const std::vector<IndexSet> &adjacent_faces = cell_mesh.GetAdjacentFacesForNodes();
   for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
@@ -59,8 +77,11 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
       triplet_list.emplace_back(node_i_idx + 2, node_j_idx + 2, -parameters_.GetNodalFriction());
     } // j
   } // i
+}
 
-  // \Gamma_{ns}
+void EquationsOfMotion::NodeToExtracellularMatrixFriction(const CellMesh &cell_mesh,
+                                                          std::vector<Eigen::Triplet<double>> &triplet_list)
+{
   cell_mesh.CalculateFaceSurfaceAreas();
   const std::vector<double> &surface_areas = cell_mesh.CalculateNodeSurfaceAreas();
   for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
@@ -74,15 +95,15 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
     triplet_list.emplace_back(node_i_idx + 1, node_i_idx + 1, cell_ecm_friction);
     triplet_list.emplace_back(node_i_idx + 2, node_i_idx + 2, cell_ecm_friction);
   } // i
-  A.setFromTriplets(triplet_list.begin(), triplet_list.end());
+}
 
-  // fill b
-  // F_{vol}
+void EquationsOfMotion::VolumePreservationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
+{
 //  double p = -parameters_.GetCellBulkModulus() * std::log(cell_mesh.CalculateCellVolume() / cell_mesh.GetInitialVolume());
   double p = -parameters_.GetCellBulkModulus() * (cell_mesh.CalculateCellVolume() - cell_mesh.GetInitialVolume())
       / cell_mesh.GetInitialVolume();
+  const std::vector<double> &surface_areas = cell_mesh.CalculateNodeSurfaceAreas();
   const std::vector<VectorType> &node_normals = cell_mesh.CalculateNodeNormals();
-  const std::vector<VectorType> &face_normals = cell_mesh.GetNormalsForFaces();
   for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
   {
     const int node_idx = i * kDim; // beginning of i-th node values in b
@@ -90,12 +111,16 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
     b[node_idx + 1] += p * surface_areas[i] * node_normals[i][1];
     b[node_idx + 2] += p * surface_areas[i] * node_normals[i][2];
   } // i
+}
 
-  // F_{T}
+void EquationsOfMotion::AreaConservationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
+{
   double area_compression_stiffness = parameters_.GetMembraneAreaCompression() * parameters_.GetRestLength();
   double area_conservation_force =
       -area_compression_stiffness * (cell_mesh.CalculateCellSurfaceArea() - cell_mesh.GetInitialSurfaceArea())
           / cell_mesh.GetInitialSurfaceArea();
+  const std::vector<IndexSet> &adjacent_faces = cell_mesh.GetAdjacentFacesForNodes();
+  const std::vector<VectorType> &face_normals = cell_mesh.GetNormalsForFaces();
   for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
   {
     VectorType force = VectorType::Zero();
@@ -110,9 +135,19 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
     b[node_idx + 1] += force[1];
     b[node_idx + 2] += force[2];
   } // i
+}
 
-  // F_{migration} = F_{random} + F_{morphogen}
+void EquationsOfMotion::CellMigrationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
+{
   // F_{random}
+  StochasticForce(cell_mesh, b);
+
+  // F_{morphogen}
+  DirectedForce(cell_mesh, b);
+}
+
+void EquationsOfMotion::StochasticForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
+{
   const double mean = 0.0;
   const double spectral_density = parameters_.GetMotility() * parameters_.GetMotility();
   std::normal_distribution<double> normal_distribution(mean, std::sqrt(spectral_density));
@@ -123,14 +158,17 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
     b[node_idx + 1] += normal_distribution(mersenne_twister_generator_);
     b[node_idx + 2] += normal_distribution(mersenne_twister_generator_);
   } // i
+}
 
-  // F_{morphogen}
+void EquationsOfMotion::DirectedForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
+{
 //  const double morphogen_strength = parameters_.GetMorphogenStrength();
 //  const VectorType morphogen_direction(parameters_.GetMorphogenDirection());
   const std::vector<VectorType> morphogen_directions =
       {{1.0, 0.0, 0.0}};//, {-0.5, 0.86, 0.0}};//, {0.0, -1.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}};
   const std::vector<double> morphogen_strengths = {0e-11};//, 8e-11, 2e-11, 2e-11, 2e-11};
   double dot_product = 0.0, nonlinear_impact = 0.0;
+  const std::vector<VectorType> &node_normals = cell_mesh.CalculateNodeNormals();
   for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
   {
     const int node_idx = i * kDim; // beginning of i-th node values in b

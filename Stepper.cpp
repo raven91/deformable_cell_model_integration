@@ -13,10 +13,7 @@ Stepper::Stepper(const Parameters &parameters) :
 
 }
 
-Stepper::~Stepper()
-{
-
-}
+Stepper::~Stepper() = default;
 
 void Stepper::DoStep(std::vector<CellMesh> &cell_meshes)
 {

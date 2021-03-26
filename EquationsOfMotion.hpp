@@ -28,6 +28,19 @@ class EquationsOfMotion
   const Parameters &parameters_;
   std::mt19937 mersenne_twister_generator_;
 
+  void NodeToNodeFrictionSameCell(const CellMesh &cell_mesh, std::vector<Eigen::Triplet<double>> &triplet_list);
+//  void NodeToNodeFrictionDifferentCells(const CellMesh &cell_mesh, std::vector<Eigen::Triplet<double>> &triplet_list);
+  void NodeToExtracellularMatrixFriction(const CellMesh &cell_mesh, std::vector<Eigen::Triplet<double>> &triplet_list);
+
+//  void CytoskeletonInPlaneElasticityForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
+//  void CytoskeletonBendingElasticityForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
+  void VolumePreservationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
+  void AreaConservationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
+//  void CellToCellContactForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
+  void CellMigrationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
+  void StochasticForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
+  void DirectedForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
+
 };
 
 #endif //DEFORMABLECELLMODEL_EQUATIONSOFMOTION_HPP

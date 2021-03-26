@@ -8,15 +8,9 @@
 #include <fstream>
 #include <array>
 
-StlObserver::StlObserver()
-{
+StlObserver::StlObserver() = default;
 
-}
-
-StlObserver::~StlObserver()
-{
-
-}
+StlObserver::~StlObserver() = default;
 
 void StlObserver::SaveCellMeshes(const std::vector<CellMesh> &cell_meshes) const
 {

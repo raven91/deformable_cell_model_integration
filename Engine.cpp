@@ -3,7 +3,7 @@
 //
 
 #include "Engine.hpp"
-#include "EquationsOfMotion.hpp"
+#include "Stepper.hpp"
 #include "Observer.hpp"
 #include "StlObserver.hpp"
 
@@ -18,8 +18,7 @@ Engine::Engine() :
 
   std::string
       cell_mesh_file_name("/Users/nikita/CLionProjects/cgal_sphere_mesh_generation/cmake-build-debug/sphere.off");
-//  cell_mesh_ = CellMesh(cell_mesh_file_name, parameters_);
-  cell_meshes_.push_back(CellMesh(cell_mesh_file_name, parameters_));
+  cell_meshes_.emplace_back(cell_mesh_file_name, parameters_);
 }
 
 Engine::~Engine()
@@ -29,7 +28,7 @@ Engine::~Engine()
 
 void Engine::RunSimulation()
 {
-  EquationsOfMotion equations_of_motion(parameters_);
+  Stepper stepper(parameters_);
   Observer observer;
 
   observer.SaveNodes(cell_meshes_);
@@ -40,7 +39,7 @@ void Engine::RunSimulation()
   for (int n = 0; n < T; ++n)
   {
     std::cout << "n = " << n << std::endl;
-    equations_of_motion.DoStep(cell_meshes_);
+    stepper.DoStep(cell_meshes_);
     observer.SaveNodes(cell_meshes_);
     observer.SaveNormalsForNodes(cell_meshes_);
 //    cell_mesh_.SetInitialVolume(cell_mesh_.GetInitialVolume() + 1e-15 * parameters_.GetDt());

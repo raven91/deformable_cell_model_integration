@@ -20,18 +20,6 @@ EquationsOfMotion::~EquationsOfMotion()
 
 }
 
-void EquationsOfMotion::DoStep(std::vector<CellMesh> &cell_meshes)
-{
-  CellMesh &cell_mesh = cell_meshes.front();
-
-  const int n = cell_mesh.GetNumNodes() * kDim;
-  Eigen::VectorXd b = Eigen::VectorXd::Zero(n);
-  Eigen::SparseMatrix<double> A(n, n);
-
-  ComputeForces(cell_mesh, A, b);
-  UpdatePositionsAndVelocities(cell_mesh, A, b);
-}
-
 /*
  * Formulate the model in the form A v = b, and solve for v,
  * where v stands for velocity
@@ -162,27 +150,5 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
         b[node_idx + 2] += morphogen_strength * morphogen_direction[2] * nonlinear_impact;
       }
     } // m
-  } // i
-}
-
-/*
- * Update v by solving A v = b
- * Update x by x += v dt
- */
-void EquationsOfMotion::UpdatePositionsAndVelocities(CellMesh &cell_mesh,
-                                                     const Eigen::SparseMatrix<double> &A,
-                                                     const Eigen::VectorXd &b)
-{
-  Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> conjugate_solver;
-  conjugate_solver.compute(A);
-  Eigen::VectorXd velocities = conjugate_solver.solve(b);
-
-  std::vector<VectorType> &nodes = cell_mesh.GetNodes();
-  VectorType velocity;
-  for (int i = 0; i < nodes.size(); ++i)
-  {
-    const int node_idx = i * kDim; // beginning of i-th node values in v
-    velocity = VectorType{velocities[node_idx], velocities[node_idx + 1], velocities[node_idx + 2]};
-    nodes[i] += velocity * parameters_.GetDt();
   } // i
 }

@@ -22,7 +22,6 @@ class Engine
  private:
 
   Parameters parameters_;
-//  CellMesh cell_mesh_;
   std::vector<CellMesh> cell_meshes_;
 
 };

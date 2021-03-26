@@ -21,17 +21,12 @@ class EquationsOfMotion
   explicit EquationsOfMotion(const Parameters &parameters);
   ~EquationsOfMotion();
 
-  void DoStep(std::vector<CellMesh> &cell_meshes);
+  void ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMatrix<double> &A, Eigen::VectorXd &b);
 
  private:
 
   const Parameters &parameters_;
   std::mt19937 mersenne_twister_generator_;
-
-  void ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMatrix<double> &A, Eigen::VectorXd &b);
-  void UpdatePositionsAndVelocities(CellMesh &cell_mesh,
-                                    const Eigen::SparseMatrix<double> &A,
-                                    const Eigen::VectorXd &b);
 
 };
 

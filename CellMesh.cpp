@@ -9,24 +9,13 @@
 #include <sstream>
 #include <cmath>
 #include <numeric> // std::accumulate
+#include <algorithm> // std::min, std::max, std::find
+#include <iterator> // std::distance
 
 CellMesh::CellMesh() :
     nodes_(),
     faces_(),
     edges_(),
-    adjacent_faces_for_nodes_(),
-    surface_areas_for_nodes_(),
-    normals_for_faces_(),
-    normals_for_nodes_(),
-    initial_cell_volume_(0.0)
-{
-
-}
-
-CellMesh::CellMesh(int n_nodes, int n_faces, int n_edges) :
-    nodes_(n_nodes, VectorType::Zero()),
-    faces_(n_faces, FaceType{-1}),
-    edges_(n_edges, EdgeType{-1}),
     adjacent_faces_for_nodes_(),
     surface_areas_for_nodes_(),
     normals_for_faces_(),
@@ -62,7 +51,7 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
       file >> x >> y >> z;
       norm = std::hypot(x, y, z);
       scaling = parameters.GetRadius() / norm;
-      nodes_.push_back({x * scaling, y * scaling, z * scaling});
+      nodes_.emplace_back(x * scaling, y * scaling, z * scaling);
     } // i
 
     int n_nodes_per_face, n_0, n_1, n_2;
@@ -72,8 +61,37 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
       faces_.push_back({n_0, n_1, n_2});
     } // i
 
-    n_edges = 0;
-    // TODO: construct a list of edges
+    // construct the list of edges
+    // and simultaneously their adjacent faces
+    EdgeType e_1, e_2, e_3;
+    std::vector<EdgeType>::iterator it;
+    int edge_idx;
+    for (int f = 0; f < faces_.size(); ++f)
+    {
+      n_0 = faces_[f][0];
+      n_1 = faces_[f][1];
+      n_2 = faces_[f][2];
+
+      e_1 = std::make_pair(std::min(n_0, n_1), std::max(n_0, n_1));
+      e_2 = std::make_pair(std::min(n_1, n_2), std::max(n_1, n_2));
+      e_3 = std::make_pair(std::min(n_0, n_2), std::max(n_0, n_2));
+      std::set<EdgeType> edges_per_face{e_1, e_2, e_3};
+
+      for (const EdgeType &edge : edges_per_face)
+      {
+        it = std::find(edges_.begin(), edges_.end(), edge);
+        if (it != edges_.end()) // edge already exists
+        {
+          edge_idx = std::distance(edges_.begin(), it);
+          adjacent_faces_for_edges_[edge_idx].insert(f);
+        } else // edge is new
+        {
+          edges_.emplace_back(edge);
+          adjacent_faces_for_edges_.emplace_back(IndexSet{f});
+        }
+      } // edge
+    } // f
+    n_edges = edges_.size();
 
     adjacent_faces_for_nodes_.resize(n_nodes);
     for (int f = 0; f < faces_.size(); ++f)

@@ -7,6 +7,7 @@
 
 #include <array>
 #include <set>
+#include <utility> // std::pair
 
 #include <eigen3/Eigen/Dense>
 
@@ -17,7 +18,7 @@ const int kEdgeDim = 2;
 //typedef std::array<double, kDim> VectorType; // as an element of a vector space
 typedef Eigen::Vector3d VectorType; // as an element of a vector space
 typedef std::array<int, kFaceDim> FaceType;
-typedef std::array<int, kEdgeDim> EdgeType;
+typedef std::pair<int, int> EdgeType;
 typedef std::set<int> IndexSet;
 
 #endif //DEFORMABLECELLMODEL_DEFINITIONS_HPP

@@ -18,7 +18,6 @@ class CellMesh
  public:
 
   CellMesh();
-  CellMesh(int n_nodes, int n_faces, int n_edges);
   CellMesh(const std::string &off_fine_name, const Parameters &parameters);
   ~CellMesh();
 
@@ -47,6 +46,7 @@ class CellMesh
   std::vector<FaceType> faces_;
   std::vector<EdgeType> edges_;
   std::vector<IndexSet> adjacent_faces_for_nodes_;
+  std::vector<IndexSet> adjacent_faces_for_edges_;
 
   mutable std::vector<double> surface_areas_for_faces_;
   mutable std::vector<double> surface_areas_for_nodes_;

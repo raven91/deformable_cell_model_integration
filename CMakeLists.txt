@@ -13,4 +13,7 @@ add_executable(DeformableCellModel main.cpp
         CellMesh.cpp CellMesh.hpp
         Definitions.hpp
         Observer.cpp Observer.hpp
-        EquationsOfMotion.cpp EquationsOfMotion.hpp Parameters.cpp Parameters.hpp StlObserver.cpp StlObserver.hpp Stepper.cpp Stepper.hpp)
+        EquationsOfMotion.cpp EquationsOfMotion.hpp
+        Parameters.cpp Parameters.hpp
+        StlObserver.cpp StlObserver.hpp
+        Stepper.cpp Stepper.hpp)

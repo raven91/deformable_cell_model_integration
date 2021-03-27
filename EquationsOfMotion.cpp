@@ -7,6 +7,9 @@
 #include <unordered_set>
 #include <cmath>
 #include <iostream>
+#include <algorithm> // std::set_difference, std::sort
+#include <iterator> // std::back_inserter
+#include <unordered_map>
 
 EquationsOfMotion::EquationsOfMotion(const Parameters &parameters) :
     parameters_(parameters),
@@ -38,6 +41,9 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
   A.setFromTriplets(triplet_list.begin(), triplet_list.end());
 
   // fill b
+  // F_{m}
+  CytoskeletonBendingElasticityForce(cell_mesh, b);
+
   // F_{vol}
   VolumePreservationForce(cell_mesh, b);
 
@@ -95,6 +101,70 @@ void EquationsOfMotion::NodeToExtracellularMatrixFriction(const CellMesh &cell_m
     triplet_list.emplace_back(node_i_idx + 1, node_i_idx + 1, cell_ecm_friction);
     triplet_list.emplace_back(node_i_idx + 2, node_i_idx + 2, cell_ecm_friction);
   } // i
+}
+
+void EquationsOfMotion::CytoskeletonBendingElasticityForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
+{
+  const std::vector<VectorType> &nodes = cell_mesh.GetNodes();
+  const std::vector<EdgeType> &edges = cell_mesh.GetEdges();
+  const std::vector<std::array<int, 2>> &adjacent_faces_for_edges = cell_mesh.GetAdjacentFacesForEdges();
+  const std::vector<FaceType> &faces = cell_mesh.GetFaces();
+  const std::vector<VectorType>
+      &face_normals = cell_mesh.CalculateFaceNormals(); // todo: optimaze calls to CalculateFaceNormals
+  const std::vector<double> &theta_0 = cell_mesh.GetInitialCurvatureAngleForEdges();
+  int face_1, face_2;
+  int i, j, k, l;
+  VectorType force_i, force_j, force_k, force_l;
+  const double bending_constant = parameters_.GetCortexYoungsModulus() * std::pow(parameters_.GetCortexThickness(), 3.0)
+      / (12.0 * (1.0 - std::pow(parameters_.GetCortexPoissonRatio(), 2.0)));
+  double bending_moment = 0.0;
+  for (int edge_idx = 0; edge_idx < edges.size(); ++edge_idx)
+  {
+    k = edges[edge_idx].first;
+    j = edges[edge_idx].second;
+
+    face_1 = adjacent_faces_for_edges[edge_idx][0];
+    face_2 = adjacent_faces_for_edges[edge_idx][1];
+
+    const std::set<int> edge_nodes{k, j};
+    std::vector<int> i_ptr, l_ptr;
+    // note: both containers must be sorted
+    FaceType sorted_face_1 = faces[face_1], sorted_face_2 = faces[face_2];
+    std::sort(sorted_face_1.begin(), sorted_face_1.end());
+    std::sort(sorted_face_2.begin(), sorted_face_2.end());
+    std::set_difference(sorted_face_1.begin(),
+                        sorted_face_1.end(),
+                        edge_nodes.begin(),
+                        edge_nodes.end(),
+                        std::back_inserter(i_ptr));
+    std::set_difference(sorted_face_2.begin(),
+                        sorted_face_2.end(),
+                        edge_nodes.begin(),
+                        edge_nodes.end(),
+                        std::back_inserter(l_ptr));
+    i = i_ptr.front();
+    l = l_ptr.front();
+
+    VectorType p_kj = nodes[j] - nodes[k], p_ki = nodes[i] - nodes[k], p_kl = nodes[l] - nodes[k];
+    VectorType proj_i = p_ki - p_ki.dot(p_kj) / p_kj.squaredNorm() * p_kj;
+    VectorType proj_l = p_kl - p_kl.dot(p_kj) / p_kj.squaredNorm() * p_kj;
+
+    const VectorType &n_1 = face_normals[face_1], &n_2 = face_normals[face_2];
+    double theta = std::acos(-n_1.dot(n_2));
+    bending_moment = bending_constant * std::sin(theta - theta_0[edge_idx]);
+    force_i = bending_moment / proj_i.norm() * n_1;
+    force_l = bending_moment / proj_l.norm() * n_2;
+    force_j = force_k = -0.5 * (force_i + force_l);
+
+    const std::unordered_map<int, VectorType> force_system{{i, force_i}, {j, force_j}, {k, force_k}, {l, force_l}};
+    for (const std::pair<const int, VectorType> &force : force_system)
+    {
+      const int node_idx = force.first * kDim; // beginning of z-th node values in b
+      b[node_idx] += force.second[0];
+      b[node_idx + 1] += force.second[1];
+      b[node_idx + 2] += force.second[2];
+    } // force
+  } // edge_idx
 }
 
 void EquationsOfMotion::VolumePreservationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)

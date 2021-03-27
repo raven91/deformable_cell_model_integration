@@ -75,7 +75,7 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
       e_1 = std::make_pair(std::min(n_0, n_1), std::max(n_0, n_1));
       e_2 = std::make_pair(std::min(n_1, n_2), std::max(n_1, n_2));
       e_3 = std::make_pair(std::min(n_0, n_2), std::max(n_0, n_2));
-      std::set<EdgeType> edges_per_face{e_1, e_2, e_3};
+      const std::set<EdgeType> edges_per_face{e_1, e_2, e_3};
 
       for (const EdgeType &edge : edges_per_face)
       {
@@ -83,11 +83,11 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
         if (it != edges_.end()) // edge already exists
         {
           edge_idx = std::distance(edges_.begin(), it);
-          adjacent_faces_for_edges_[edge_idx].insert(f);
+          adjacent_faces_for_edges_[edge_idx][1] = f;
         } else // edge is new
         {
           edges_.emplace_back(edge);
-          adjacent_faces_for_edges_.emplace_back(IndexSet{f});
+          adjacent_faces_for_edges_.emplace_back(std::array<int, 2>{f, -1});
         }
       } // edge
     } // f
@@ -108,6 +108,7 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
     initial_cell_volume_ = CalculateCellVolume();
     MakeFacesOriented();
     CalculateNodeNormals();
+    CalculateInitialCurvatureAngleForEdges();
 
     file.close();
   } else
@@ -139,9 +140,19 @@ const std::vector<FaceType> &CellMesh::GetFaces() const
   return faces_;
 }
 
+const std::vector<EdgeType> &CellMesh::GetEdges() const
+{
+  return edges_;
+}
+
 const std::vector<IndexSet> &CellMesh::GetAdjacentFacesForNodes() const
 {
   return adjacent_faces_for_nodes_;
+}
+
+const std::vector<std::array<int, 2>> &CellMesh::GetAdjacentFacesForEdges() const
+{
+  return adjacent_faces_for_edges_;
 }
 
 const std::vector<VectorType> &CellMesh::GetNormalsForNodes() const
@@ -152,6 +163,11 @@ const std::vector<VectorType> &CellMesh::GetNormalsForNodes() const
 const std::vector<VectorType> &CellMesh::GetNormalsForFaces() const
 {
   return normals_for_faces_;
+}
+
+const std::vector<double> &CellMesh::GetInitialCurvatureAngleForEdges() const
+{
+  return initial_curvature_angle_for_edges_;
 }
 
 int CellMesh::GetNumNodes() const
@@ -324,4 +340,35 @@ const std::vector<VectorType> &CellMesh::CalculateNodeNormals() const
     normals_for_nodes_[i] = node_normal.normalized();
   } // i
   return normals_for_nodes_;
+}
+
+/*
+ * Requires face normals
+ */
+void CellMesh::CalculateInitialCurvatureAngleForEdges()
+{
+  CalculateFaceNormals();
+  initial_curvature_angle_for_edges_ = std::vector<double>(edges_.size(), 0.0);
+  int i, j, k, l;
+  int face_1, face_2;
+  for (int edge_idx = 0; edge_idx < edges_.size(); ++edge_idx)
+  {
+    k = edges_[edge_idx].first;
+    j = edges_[edge_idx].second;
+
+    face_1 = adjacent_faces_for_edges_[edge_idx][0];
+    face_2 = adjacent_faces_for_edges_[edge_idx][1];
+
+    const std::set<int> edge_nodes{k, j};
+    std::set_difference(faces_[face_1].begin(), faces_[face_1].end(), edge_nodes.begin(), edge_nodes.end(), &i);
+    std::set_difference(faces_[face_2].begin(), faces_[face_2].end(), edge_nodes.begin(), edge_nodes.end(), &l);
+
+    VectorType p_kj = nodes_[j] - nodes_[k], p_ki = nodes_[i] - nodes_[k], p_kl = nodes_[l] - nodes_[k];
+    VectorType proj_i = p_ki - p_ki.dot(p_kj) / p_kj.squaredNorm() * p_kj;
+    VectorType proj_l = p_kl - p_kl.dot(p_kj) / p_kj.squaredNorm() * p_kj;
+
+    const VectorType &n_1 = normals_for_faces_[face_1], &n_2 = normals_for_faces_[face_2];
+    double theta_0 = std::acos(-n_1.dot(n_2));
+    initial_curvature_angle_for_edges_[edge_idx] = theta_0;
+  } // edge_idx
 }

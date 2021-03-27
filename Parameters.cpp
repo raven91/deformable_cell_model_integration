@@ -33,6 +33,21 @@ double Parameters::GetRadius() const
   return parameter_dictionary_.at("radius");
 }
 
+double Parameters::GetCortexYoungsModulus() const
+{
+  return parameter_dictionary_.at("cortex_youngs_modulus");
+}
+
+double Parameters::GetCortexThickness() const
+{
+  return parameter_dictionary_.at("cortex_thickness");
+}
+
+double Parameters::GetCortexPoissonRatio() const
+{
+  return parameter_dictionary_.at("cortex_poisson_ratio");
+}
+
 double Parameters::GetMembraneAreaCompression() const
 {
   return parameter_dictionary_.at("membrane_area_compression");

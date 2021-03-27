@@ -20,6 +20,9 @@ class Parameters
 
   double GetDt() const;
   double GetRadius() const;
+  double GetCortexYoungsModulus() const;
+  double GetCortexThickness() const;
+  double GetCortexPoissonRatio() const;
   double GetMembraneAreaCompression() const;
   double GetCellBulkModulus() const;
   double GetNodalFriction() const;

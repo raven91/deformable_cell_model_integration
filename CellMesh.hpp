@@ -26,9 +26,11 @@ class CellMesh
   const std::vector<FaceType> &GetFaces() const;
   const std::vector<EdgeType> &GetEdges() const;
   const std::vector<IndexSet> &GetAdjacentFacesForNodes() const;
+  const std::vector<std::vector<int>> &GetAdjacentNodesForNodes() const;
   const std::vector<std::array<int, 2>> &GetAdjacentFacesForEdges() const;
   const std::vector<VectorType> &GetNormalsForNodes() const;
   const std::vector<VectorType> &GetNormalsForFaces() const;
+  const std::vector<std::vector<double>> &GetInitialLengthsBetweenAdjacentNodes() const;
   const std::vector<double> &GetInitialCurvatureAngleForEdges() const;
 
   int GetNumNodes() const;
@@ -49,6 +51,7 @@ class CellMesh
   std::vector<FaceType> faces_;
   std::vector<EdgeType> edges_;
   std::vector<IndexSet> adjacent_faces_for_nodes_;
+  std::vector<std::vector<int>> adjacent_nodes_for_nodes_;
   std::vector<std::array<int, 2>> adjacent_faces_for_edges_;
 
   mutable std::vector<double> surface_areas_for_faces_;
@@ -57,6 +60,8 @@ class CellMesh
   double initial_cell_volume_;
   mutable std::vector<VectorType> normals_for_faces_;
   mutable std::vector<VectorType> normals_for_nodes_;
+  mutable std::vector<std::vector<double>>
+      initial_lenghts_between_adjacent_nodes_; // has same lengths as adjacent_nodes_for_nodes_
   mutable std::vector<double> initial_curvature_angle_for_edges_;
 
   double FaceArea(int face_index) const;

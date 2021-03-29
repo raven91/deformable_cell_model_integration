@@ -34,22 +34,20 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
 
   // \Gamma_{nn}^{cc}
   NodeToNodeFrictionSameCell(cell_mesh, triplet_list);
-
   // \Gamma_{ns}
   NodeToExtracellularMatrixFriction(cell_mesh, triplet_list);
 
   A.setFromTriplets(triplet_list.begin(), triplet_list.end());
 
   // fill b
+  // F_{e}
+  CytoskeletonInPlaneElasticityForce(cell_mesh, b);
   // F_{m}
   CytoskeletonBendingElasticityForce(cell_mesh, b);
-
   // F_{vol}
   VolumePreservationForce(cell_mesh, b);
-
   // F_{T}
   AreaConservationForce(cell_mesh, b);
-
   // F_{migration} = F_{random} + F_{morphogen}
   CellMigrationForce(cell_mesh, b);
 }
@@ -100,6 +98,36 @@ void EquationsOfMotion::NodeToExtracellularMatrixFriction(const CellMesh &cell_m
     triplet_list.emplace_back(node_i_idx, node_i_idx, cell_ecm_friction);
     triplet_list.emplace_back(node_i_idx + 1, node_i_idx + 1, cell_ecm_friction);
     triplet_list.emplace_back(node_i_idx + 2, node_i_idx + 2, cell_ecm_friction);
+  } // i
+}
+
+void EquationsOfMotion::CytoskeletonInPlaneElasticityForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
+{
+  const std::vector<VectorType> &nodes = cell_mesh.GetNodes();
+  const std::vector<std::vector<int>> &adjacent_nodes = cell_mesh.GetAdjacentNodesForNodes();
+  const std::vector<std::vector<double>> &initial_lengths = cell_mesh.GetInitialLengthsBetweenAdjacentNodes();
+  const double linear_spring_constant =
+      2.0 / std::sqrt(3.0) * parameters_.GetCortexYoungsModulus() * parameters_.GetCortexThickness();
+  VectorType e;
+  double l_0 = 0.0, l = 0.0;
+  for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
+  {
+    // todo: rewrite using boost::combine
+    VectorType force = VectorType::Zero();
+    for (int j = 0; j < adjacent_nodes[i].size(); ++j)
+    {
+      l_0 = initial_lengths[i][j];
+      e = nodes[i] - nodes[adjacent_nodes[i][j]];
+      l = e.norm();
+      e /= l;
+
+      force += -linear_spring_constant * (l - l_0) * e;
+    } // j
+
+    const int node_idx = i * kDim; // beginning of i-th node values in b
+    b[node_idx] += force[0];
+    b[node_idx + 1] += force[1];
+    b[node_idx + 2] += force[2];
   } // i
 }
 

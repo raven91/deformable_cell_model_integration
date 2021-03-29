@@ -93,6 +93,21 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
     } // f
     n_edges = edges_.size();
 
+    VectorType initial_separation;
+    double initial_distance = 0.0;
+    adjacent_nodes_for_nodes_.resize(n_nodes);
+    initial_lenghts_between_adjacent_nodes_.resize(n_nodes);
+    for (const EdgeType &edge : edges_)
+    {
+      adjacent_nodes_for_nodes_[edge.first].push_back(edge.second);
+      adjacent_nodes_for_nodes_[edge.second].push_back(edge.first);
+
+      initial_separation = nodes_[edge.first] - nodes_[edge.second];
+      initial_distance = initial_separation.norm();
+      initial_lenghts_between_adjacent_nodes_[edge.first].push_back(initial_distance);
+      initial_lenghts_between_adjacent_nodes_[edge.second].push_back(initial_distance);
+    } // edge
+
     adjacent_faces_for_nodes_.resize(n_nodes);
     for (int f = 0; f < faces_.size(); ++f)
     {
@@ -150,6 +165,11 @@ const std::vector<IndexSet> &CellMesh::GetAdjacentFacesForNodes() const
   return adjacent_faces_for_nodes_;
 }
 
+const std::vector<std::vector<int>> &CellMesh::GetAdjacentNodesForNodes() const
+{
+  return adjacent_nodes_for_nodes_;
+}
+
 const std::vector<std::array<int, 2>> &CellMesh::GetAdjacentFacesForEdges() const
 {
   return adjacent_faces_for_edges_;
@@ -163,6 +183,11 @@ const std::vector<VectorType> &CellMesh::GetNormalsForNodes() const
 const std::vector<VectorType> &CellMesh::GetNormalsForFaces() const
 {
   return normals_for_faces_;
+}
+
+const std::vector<std::vector<double>> &CellMesh::GetInitialLengthsBetweenAdjacentNodes() const
+{
+  return initial_lenghts_between_adjacent_nodes_;
 }
 
 const std::vector<double> &CellMesh::GetInitialCurvatureAngleForEdges() const

@@ -32,7 +32,7 @@ class EquationsOfMotion
 //  void NodeToNodeFrictionDifferentCells(const CellMesh &cell_mesh, std::vector<Eigen::Triplet<double>> &triplet_list);
   void NodeToExtracellularMatrixFriction(const CellMesh &cell_mesh, std::vector<Eigen::Triplet<double>> &triplet_list);
 
-//  void CytoskeletonInPlaneElasticityForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
+  void CytoskeletonInPlaneElasticityForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
   void CytoskeletonBendingElasticityForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
   void VolumePreservationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
   void AreaConservationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);

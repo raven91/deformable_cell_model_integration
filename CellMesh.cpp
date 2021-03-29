@@ -368,7 +368,7 @@ void CellMesh::CalculateInitialCurvatureAngleForEdges()
     VectorType proj_l = p_kl - p_kl.dot(p_kj) / p_kj.squaredNorm() * p_kj;
 
     const VectorType &n_1 = normals_for_faces_[face_1], &n_2 = normals_for_faces_[face_2];
-    double theta_0 = std::acos(-n_1.dot(n_2));
+    double theta_0 = std::acos(n_1.dot(n_2));
     initial_curvature_angle_for_edges_[edge_idx] = theta_0;
   } // edge_idx
 }

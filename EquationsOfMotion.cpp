@@ -150,7 +150,7 @@ void EquationsOfMotion::CytoskeletonBendingElasticityForce(const CellMesh &cell_
     VectorType proj_l = p_kl - p_kl.dot(p_kj) / p_kj.squaredNorm() * p_kj;
 
     const VectorType &n_1 = face_normals[face_1], &n_2 = face_normals[face_2];
-    double theta = std::acos(-n_1.dot(n_2));
+    double theta = std::acos(n_1.dot(n_2));
     bending_moment = bending_constant * std::sin(theta - theta_0[edge_idx]);
     force_i = bending_moment / proj_i.norm() * n_1;
     force_l = bending_moment / proj_l.norm() * n_2;

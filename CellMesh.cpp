@@ -228,7 +228,7 @@ const std::vector<double> &CellMesh::CalculateNodeSurfaceAreas() const
     {
       total_area += surface_areas_for_faces_[face_index];
     } // face
-    surface_areas_for_nodes_[i] = total_area / adjacent_faces_for_nodes_[i].size();
+    surface_areas_for_nodes_[i] = total_area / 3.0;
   } // i
   return surface_areas_for_nodes_;
 }

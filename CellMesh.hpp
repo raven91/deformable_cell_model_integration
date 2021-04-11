@@ -45,6 +45,7 @@ class CellMesh
   double CalculateCellVolume() const;
   const std::vector<VectorType> &CalculateFaceNormals() const;
   const std::vector<VectorType> &CalculateNodeNormals() const;
+  const std::vector<VectorType> &CalculateNodeCurvatures() const;
 
  private:
 
@@ -64,6 +65,7 @@ class CellMesh
   mutable std::vector<std::vector<double>>
       initial_lenghts_between_adjacent_nodes_; // has same lengths as adjacent_nodes_for_nodes_
   mutable std::vector<double> initial_curvature_angle_for_edges_;
+  mutable std::vector<VectorType> curvatures_for_nodes_;
 
   double FaceArea(int face_index) const;
   void MakeFacesOriented();

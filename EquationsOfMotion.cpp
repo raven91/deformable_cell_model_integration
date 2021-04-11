@@ -241,7 +241,140 @@ void EquationsOfMotion::AreaConservationForce(const CellMesh &cell_mesh, Eigen::
 
 void EquationsOfMotion::CellToPlaneContactForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
 {
+  const std::vector<VectorType> &cell_nodes = cell_mesh.GetNodes();
+  const std::vector<FaceType> &cell_faces = cell_mesh.GetFaces();
+  const std::vector<VectorType> &plane_nodes = plane_.GetNodes();
+  const std::vector<FaceType> &plane_faces = plane_.GetFaces();
+  const std::vector<double> &node_surface_areas = cell_mesh.CalculateNodeSurfaceAreas();
+  const std::vector<VectorType> &node_curvatures = cell_mesh.CalculateNodeCurvatures();
+  const std::vector<VectorType> &cell_face_normals = cell_mesh.CalculateFaceNormals();
 
+  const double min_curvature = 1e+6;
+
+  for (int cell_face_idx = 0; cell_face_idx < cell_mesh.GetNumFaces(); ++cell_face_idx)
+  {
+    const VectorType cell_face_normal = cell_face_normals[cell_face_idx];
+    // Sphere reconstruction
+    FaceType cell_face = cell_faces[cell_face_idx];
+    VectorType face_curvature = (node_curvatures[cell_face[0]] * node_surface_areas[cell_face[0]]
+        + node_curvatures[cell_face[1]] * node_surface_areas[cell_face[1]]
+        + node_curvatures[cell_face[2]] * node_surface_areas[cell_face[2]])
+        / (node_surface_areas[cell_face[0]] + node_surface_areas[cell_face[1]] + node_surface_areas[cell_face[2]]);
+    VectorType
+        cell_face_center = (cell_nodes[cell_face[0]] + cell_nodes[cell_face[1]] + cell_nodes[cell_face[2]]) / 3.0;
+    double radius_1 = 2.0 / face_curvature.norm();
+    double radius_1_squared = radius_1 * radius_1;
+    VectorType c_1 = cell_face_center - face_curvature.normalized() * radius_1;
+    VectorType c_1_1 = VectorType::Zero();
+
+    const VectorType plane_face_normal(0.0, 0.0, 1.0);
+    for (int plane_face_idx = 0; plane_face_idx < plane_.GetNumFaces(); ++plane_face_idx)
+    {
+      // Sphere reconstruction
+      FaceType plane_face = plane_faces[plane_face_idx];
+      VectorType plane_face_center =
+          (plane_nodes[plane_face[0]] + plane_nodes[plane_face[1]] + plane_nodes[plane_face[2]]) / 3.0;
+      double radius_2 = 1.0 / min_curvature;
+      double radius_2_squared = radius_2 * radius_2;
+      VectorType c_2 = plane_face_center - plane_face_normal * radius_2;
+      VectorType c_2_1 = c_2 - c_1;
+
+      bool faces_face_each_other =
+          ((c_2 - c_1).dot(cell_face_normal) > 0.0) && ((c_1 - c_2).dot(plane_face_normal) > 0.0);
+      if (faces_face_each_other)
+      {
+        // contact plane center
+        VectorType c_0 = VectorType(c_2_1.x(), c_2_1.y(), c_2_1.z())
+            * (-0.5 * ((radius_2_squared - radius_1_squared) / c_2_1.squaredNorm() - 1.0));
+        // contact plane normal
+        VectorType contact_plane_normal = -c_2_1.normalized();
+        double contact_plane_radius_squared = radius_1_squared - c_0.squaredNorm();
+        // contact plane reference basis
+        VectorType n_1 = (plane_nodes[plane_face[0]] - c_1).normalized().cross(contact_plane_normal);
+        VectorType n_2 = contact_plane_normal.cross(n_1);
+
+        // todo: introduce p_1, p_2, p_3, q_1, q_2, q_3
+        Eigen::Vector3d
+            p_1_proj((cell_nodes[cell_face[0]] - c_1).dot(n_1), (cell_nodes[cell_face[0]] - c_1).dot(n_2), 0.0);
+        Eigen::Vector3d
+            p_2_proj((cell_nodes[cell_face[1]] - c_1).dot(n_1), (cell_nodes[cell_face[1]] - c_1).dot(n_2), 0.0);
+        Eigen::Vector3d
+            p_3_proj((cell_nodes[cell_face[2]] - c_1).dot(n_1), (cell_nodes[cell_face[2]] - c_1).dot(n_2), 0.0);
+        std::vector<Eigen::Vector3d> p_proj{c_0 + p_1_proj, c_0 + p_2_proj, c_0 + p_3_proj};
+        Eigen::Vector3d
+            q_1_proj((plane_nodes[plane_face[0]] - c_1).dot(n_1), (plane_nodes[plane_face[0]] - c_1).dot(n_2), 0.0);
+        Eigen::Vector3d
+            q_2_proj((plane_nodes[plane_face[1]] - c_1).dot(n_1), (plane_nodes[plane_face[1]] - c_1).dot(n_2), 0.0);
+        Eigen::Vector3d
+            q_3_proj((plane_nodes[plane_face[2]] - c_1).dot(n_1), (plane_nodes[plane_face[2]] - c_1).dot(n_2), 0.0);
+        std::vector<Eigen::Vector3d> q_proj{c_0 + q_1_proj, c_0 + q_2_proj, c_0 + q_3_proj};
+
+        std::vector<Eigen::Vector3d> intersection_points;
+        for (int pi = 0; pi < p_proj.size(); ++pi)
+        {
+          Eigen::Vector3d x_1 = p_proj[pi], x_2 = p_proj[(pi + 1) % p_proj.size()];
+          for (int qi = 0; qi < q_proj.size(); ++qi)
+          {
+            Eigen::Vector3d x_3 = q_proj[qi], x_4 = q_proj[(qi + 1) % q_proj.size()];
+            // todo: move intersection computation to a separate function
+            VectorType a = x_2 - x_1;
+            VectorType b = x_4 - x_3;
+            VectorType c = x_3 - x_2;
+            VectorType s = x_1 + a * c.cross(b).dot(a.cross(b)) / a.cross(b).squaredNorm();
+            if (((x_1 - s).squaredNorm() < (x_1 - x_2).squaredNorm())
+                && ((x_2 - s).squaredNorm() < (x_1 - x_2).squaredNorm())
+                && ((x_3 - s).squaredNorm() < (x_3 - x_4).squaredNorm())
+                && ((x_4 - s).squaredNorm() < (x_3 - x_4).squaredNorm()))
+            {
+              intersection_points.push_back(s);
+            }
+          } // qi
+        } // pi
+        if (intersection_points.empty())
+        {
+          continue;
+        }
+        // todo:: add corner points of one triangle that are within another triangle
+        // todo:: sort all point in s ccw
+        VectorType closest_point = *std::min_element(intersection_points.begin(),
+                                                     intersection_points.end(),
+                                                     [&](const VectorType &p_1, const VectorType &p_2)
+                                                     {
+                                                       return (p_1 - c_0).squaredNorm() < (p_2 - c_0).squaredNorm();
+                                                     });
+        double h_squared = (closest_point - c_0).squaredNorm();
+        if (h_squared > contact_plane_radius_squared)
+        {
+          continue;
+        }
+        double delta_s = c_2_1.norm() - radius_1 - radius_2;
+        if (delta_s >= 0.0)
+        {
+          continue;
+        }
+        double delta_t = delta_s - radius_1 - radius_2 + std::sqrt(radius_1_squared - h_squared)
+            + std::sqrt(radius_2_squared - h_squared);
+
+        // force calculation
+        VectorType force = contact_plane_normal;
+        double E_hat = 1.0 / ((2.0 - 2.0 * parameters_.GetCortexPoissonRatio() * parameters_.GetCortexPoissonRatio())
+            / (parameters_.GetCortexYoungsModulus() * 1e2));
+        double R_hat = 1.0 / (1.0 / radius_1 + 1.0 / radius_2);
+        double p_r = 2.0 * E_hat / (M_PI * R_hat)
+            * std::sqrt(contact_plane_radius_squared - (closest_point - c_0).squaredNorm());
+        double contact_area = TriangleArea(p_1_proj, p_2_proj, p_3_proj);
+        force *= contact_area * p_r;
+
+        for (int i : cell_face)
+        {
+          const int node_idx = i * kDim; // beginning of i-th node values in b
+          b[node_idx] += force[0] * (5e-2 / 3.0);
+          b[node_idx + 1] += force[1] * (5e-2 / 3.0);
+          b[node_idx + 2] += force[2] * (5e-2 / 3.0);
+        } // i
+      }
+    } // plane_face_idx
+  } // cell_face_idx
 }
 
 void EquationsOfMotion::CellMigrationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
@@ -312,4 +445,14 @@ void EquationsOfMotion::GravitationalForce(const CellMesh &cell_mesh, Eigen::Vec
     b[node_idx + 1] += gravity[1];
     b[node_idx + 2] += gravity[2];
   } // i
+}
+
+double EquationsOfMotion::TriangleArea(const VectorType &p_0, const VectorType &p_1, const VectorType &p_2) const
+{
+  double a = (p_0 - p_1).norm();
+  double b = (p_1 - p_2).norm();
+  double c = (p_2 - p_0).norm();
+  double s = (a + b + c) / 2.0;
+  double area = std::sqrt(s * (s - a) * (s - b) * (s - c));
+  return area;
 }

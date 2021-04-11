@@ -44,6 +44,8 @@ class EquationsOfMotion
   void DirectedForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
   void GravitationalForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
 
+  double TriangleArea(const VectorType &p_0, const VectorType &p_1, const VectorType &p_2) const;
+
 };
 
 #endif //DEFORMABLECELLMODEL_EQUATIONSOFMOTION_HPP

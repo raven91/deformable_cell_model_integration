@@ -9,8 +9,9 @@
 #include <sstream>
 #include <cmath>
 #include <numeric> // std::accumulate
-#include <algorithm> // std::min, std::max, std::find
-#include <iterator> // std::distance
+#include <algorithm> // std::min, std::max, std::find, std::sort, std::set_difference
+#include <iterator> // std::distance, std::back_inserter
+#include <cassert>
 
 CellMesh::CellMesh() :
     nodes_(),
@@ -30,7 +31,8 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
     normals_for_faces_(),
     normals_for_nodes_(),
     initial_cell_surface_area_(0.0),
-    initial_cell_volume_(0.0)
+    initial_cell_volume_(0.0),
+    curvatures_for_nodes_()
 {
   std::string file_name("/Users/nikita/CLionProjects/cgal_sphere_mesh_generation/cmake-build-debug/sphere.off");
   std::ifstream file(file_name, std::ios::in);
@@ -153,7 +155,7 @@ CellMesh::CellMesh(const std::string &off_plane_file_name) :
 
     double x, y, z;
     const double norm = 1.0, scaling = 10e-6; // todo: remove hardcored constants
-    const VectorType downward_shift(0.0, 0.0, -2.0 * scaling);
+    const VectorType downward_shift(0.0, 0.0, -1.1 * scaling);
     for (int i = 0; i < n_nodes; ++i)
     {
       file >> x >> y >> z;
@@ -177,7 +179,22 @@ CellMesh::CellMesh(const std::string &off_plane_file_name) :
     } // f
 
     MakeFacesOriented();
-    CalculateNodeNormals();
+
+    // Calculate Face Normals
+    // todo: move to a separate function
+    normals_for_faces_ = std::vector<VectorType>(faces_.size(), VectorType::Zero());
+    const VectorType normal(0.0, 0.0, 1.0);
+    for (int f = 0; f < faces_.size(); ++f)
+    {
+      normals_for_faces_[f] = normal;
+    } // f
+    // Calculate Node Normals
+    // todo: move to a separate function
+    normals_for_nodes_ = std::vector<VectorType>(nodes_.size(), VectorType::Zero());
+    for (int i = 0; i < nodes_.size(); ++i)
+    {
+      normals_for_nodes_[i] = normal;
+    } // i
   } else
   {
     std::cerr << "Cannot open off-file" << std::endl;
@@ -448,4 +465,66 @@ void CellMesh::CalculateInitialCurvatureAngleForEdges()
     double theta_0 = std::acos(n_1.dot(n_2));
     initial_curvature_angle_for_edges_[edge_idx] = theta_0;
   } // edge_idx
+}
+
+/*
+ * Requires adjacent_nodes_for_nodes_, surface_areas_for_nodes_
+ */
+const std::vector<VectorType> &CellMesh::CalculateNodeCurvatures() const
+{
+  VectorType p_0, p_1, p_2, p_01, p_02;
+  curvatures_for_nodes_ = std::vector<VectorType>(nodes_.size(), VectorType::Zero());
+  for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+  {
+    VectorType curvature = VectorType::Zero();
+    for (int adjacent_node_idx : adjacent_nodes_for_nodes_[node_idx])
+    {
+      EdgeType edge(std::min(node_idx, adjacent_node_idx), std::max(node_idx, adjacent_node_idx));
+      std::vector<EdgeType>::const_iterator e_it = std::find(edges_.begin(), edges_.end(), edge);
+      assert(e_it != edges_.end());
+      p_1 = nodes_[edge.first];
+      p_2 = nodes_[edge.second];
+      const std::set<int> edge_nodes{edge.first, edge.second};
+      int edge_idx = std::distance(edges_.begin(), e_it);
+
+      int face_alpha_idx = adjacent_faces_for_edges_[edge_idx][0];
+      FaceType face_alpha = faces_[face_alpha_idx];
+      std::sort(face_alpha.begin(), face_alpha.end());
+      std::vector<int> opposite_node_idx_ptr;
+      std::set_difference(face_alpha.begin(),
+                          face_alpha.end(),
+                          edge_nodes.begin(),
+                          edge_nodes.end(),
+                          std::back_inserter(opposite_node_idx_ptr));
+      assert(opposite_node_idx_ptr.size() == 1);
+      int opposite_node_idx = opposite_node_idx_ptr.front();
+      p_0 = nodes_[opposite_node_idx];
+      p_01 = (p_1 - p_0).normalized();
+      p_02 = (p_2 - p_0).normalized();
+      double alpha = std::acos(p_01.dot(p_02));
+
+      int face_beta_idx = adjacent_faces_for_edges_[edge_idx][1];
+      FaceType face_beta = faces_[face_beta_idx];
+      std::sort(face_beta.begin(), face_beta.end());
+      opposite_node_idx_ptr.clear();
+      std::set_difference(face_beta.begin(),
+                          face_beta.end(),
+                          edge_nodes.begin(),
+                          edge_nodes.end(),
+                          std::back_inserter(opposite_node_idx_ptr));
+      assert(opposite_node_idx_ptr.size() == 1);
+      opposite_node_idx = opposite_node_idx_ptr.front();
+      p_0 = nodes_[opposite_node_idx];
+      p_01 = (p_1 - p_0).normalized();
+      p_02 = (p_2 - p_0).normalized();
+      double beta = std::acos(p_01.dot(p_02));
+
+      curvature +=
+          (std::tan(M_PI_2 - alpha) + std::tan(M_PI_2 - beta)) * (nodes_[node_idx] - nodes_[adjacent_node_idx]);
+    } // adjacent_node_idx
+    curvature /= (2.0 * surface_areas_for_nodes_[node_idx]);
+    curvatures_for_nodes_[node_idx] = curvature;
+  } // node_idx
+
+  return curvatures_for_nodes_;
 }

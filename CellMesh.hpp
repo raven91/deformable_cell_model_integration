@@ -19,6 +19,7 @@ class CellMesh
 
   CellMesh();
   CellMesh(const std::string &off_fine_name, const Parameters &parameters);
+  CellMesh(const std::string &off_plane_file_name); // todo: refactor with the hierarchy of mesh classes
   ~CellMesh();
 
   const std::vector<VectorType> &GetNodes() const;

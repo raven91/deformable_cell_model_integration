@@ -29,6 +29,7 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
     surface_areas_for_nodes_(),
     normals_for_faces_(),
     normals_for_nodes_(),
+    initial_cell_surface_area_(0.0),
     initial_cell_volume_(0.0)
 {
   std::string file_name("/Users/nikita/CLionProjects/cgal_sphere_mesh_generation/cmake-build-debug/sphere.off");
@@ -126,6 +127,57 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
     CalculateInitialCurvatureAngleForEdges();
 
     file.close();
+  } else
+  {
+    std::cerr << "Cannot open off-file" << std::endl;
+    exit(-1);
+  }
+}
+
+CellMesh::CellMesh(const std::string &off_plane_file_name) :
+    initial_cell_surface_area_(0.0),
+    initial_cell_volume_(0.0)
+{
+  std::string file_name("/Users/nikita/CLionProjects/cgal_sphere_mesh_generation/cmake-build-debug/plane.off");
+  std::ifstream file(file_name, std::ios::in);
+  if (file.is_open())
+  {
+    std::string header;
+    std::getline(file, header);
+
+    std::string parameters_line;
+    std::getline(file, parameters_line);
+    std::istringstream parameters_line_buffer(parameters_line);
+    int n_nodes = 0, n_faces = 0, n_edges = 0;
+    parameters_line_buffer >> n_nodes >> n_faces >> n_edges;
+
+    double x, y, z;
+    const double norm = 1.0, scaling = 10e-6; // todo: remove hardcored constants
+    const VectorType downward_shift(0.0, 0.0, -2.0 * scaling);
+    for (int i = 0; i < n_nodes; ++i)
+    {
+      file >> x >> y >> z;
+      nodes_.emplace_back(VectorType(x * scaling, y * scaling, z * scaling) + downward_shift);
+    } // i
+
+    int n_nodes_per_face, n_0, n_1, n_2;
+    for (int i = 0; i < n_faces; ++i)
+    {
+      file >> n_nodes_per_face >> n_0 >> n_1 >> n_2;
+      faces_.push_back({n_0, n_1, n_2});
+    } // i
+
+    adjacent_faces_for_nodes_.resize(n_nodes);
+    for (int f = 0; f < faces_.size(); ++f)
+    {
+      for (int vertex : faces_[f])
+      {
+        adjacent_faces_for_nodes_[vertex].insert(f);
+      } // vertex
+    } // f
+
+    MakeFacesOriented();
+    CalculateNodeNormals();
   } else
   {
     std::cerr << "Cannot open off-file" << std::endl;

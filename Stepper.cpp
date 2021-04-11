@@ -17,6 +17,7 @@ Stepper::~Stepper() = default;
 
 void Stepper::DoStep(std::vector<CellMesh> &cell_meshes)
 {
+  // todo: process the colleciton of cells
   CellMesh &cell_mesh = cell_meshes.front();
 
   const int n = cell_mesh.GetNumNodes() * kDim;

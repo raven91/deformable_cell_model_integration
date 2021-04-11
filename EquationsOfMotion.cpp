@@ -13,7 +13,8 @@
 
 EquationsOfMotion::EquationsOfMotion(const Parameters &parameters) :
     parameters_(parameters),
-    mersenne_twister_generator_(std::random_device{}())
+    mersenne_twister_generator_(std::random_device{}()),
+    plane_("/Users/nikita/CLionProjects/cgal_sphere_mesh_generation/cmake-build-debug/plane.off")
 {
 
 }
@@ -47,9 +48,12 @@ void EquationsOfMotion::ComputeForces(const CellMesh &cell_mesh, Eigen::SparseMa
   // F_{vol}
   VolumePreservationForce(cell_mesh, b);
   // F_{T}
-  AreaConservationForce(cell_mesh, b);
+//  AreaConservationForce(cell_mesh, b);
+  // F_{rep,plane} + F_{adh,plane}
+  CellToPlaneContactForce(cell_mesh, b);
   // F_{migration} = F_{random} + F_{morphogen}
   CellMigrationForce(cell_mesh, b);
+  GravitationalForce(cell_mesh, b);
 }
 
 void EquationsOfMotion::NodeToNodeFrictionSameCell(const CellMesh &cell_mesh,
@@ -235,6 +239,11 @@ void EquationsOfMotion::AreaConservationForce(const CellMesh &cell_mesh, Eigen::
   } // i
 }
 
+void EquationsOfMotion::CellToPlaneContactForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
+{
+
+}
+
 void EquationsOfMotion::CellMigrationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
 {
   // F_{random}
@@ -286,5 +295,21 @@ void EquationsOfMotion::DirectedForce(const CellMesh &cell_mesh, Eigen::VectorXd
         b[node_idx + 2] += morphogen_strength * morphogen_direction[2] * nonlinear_impact;
       }
     } // m
+  } // i
+}
+
+void EquationsOfMotion::GravitationalForce(const CellMesh &cell_mesh, Eigen::VectorXd &b)
+{
+  const double gravitational_acceleration = 9.80665;
+  const double volume = cell_mesh.CalculateCellVolume(); // todo: optimize the call
+  const double density = 997.0;
+  const double mass = density * volume;
+  const VectorType gravity(0.0f, 0.0f, -mass * gravitational_acceleration);
+  for (int i = 0; i < cell_mesh.GetNumNodes(); ++i)
+  {
+    const int node_idx = i * kDim; // beginning of i-th node values in b
+    b[node_idx] += gravity[0];
+    b[node_idx + 1] += gravity[1];
+    b[node_idx + 2] += gravity[2];
   } // i
 }

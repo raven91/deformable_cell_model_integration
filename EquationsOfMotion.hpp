@@ -27,6 +27,7 @@ class EquationsOfMotion
 
   const Parameters &parameters_;
   std::mt19937 mersenne_twister_generator_;
+  CellMesh plane_;
 
   void NodeToNodeFrictionSameCell(const CellMesh &cell_mesh, std::vector<Eigen::Triplet<double>> &triplet_list);
 //  void NodeToNodeFrictionDifferentCells(const CellMesh &cell_mesh, std::vector<Eigen::Triplet<double>> &triplet_list);
@@ -36,10 +37,12 @@ class EquationsOfMotion
   void CytoskeletonBendingElasticityForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
   void VolumePreservationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
   void AreaConservationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
+  void CellToPlaneContactForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
 //  void CellToCellContactForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
   void CellMigrationForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
   void StochasticForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
   void DirectedForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
+  void GravitationalForce(const CellMesh &cell_mesh, Eigen::VectorXd &b);
 
 };
 

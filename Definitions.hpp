@@ -15,10 +15,10 @@ const int kDim = 3;
 const int kFaceDim = 3;
 const int kEdgeDim = 2;
 
-//typedef std::array<double, kDim> VectorType; // as an element of a vector space
-typedef Eigen::Vector3d VectorType; // as an element of a vector space
-typedef std::array<int, kFaceDim> FaceType;
-typedef std::pair<int, int> EdgeType;
-typedef std::set<int> IndexSet;
+//using VectorType = std::array<double, kDim>; // as an element of a vector space
+using VectorType = Eigen::Vector3d; // as an element of a vector space
+using FaceType = std::array<int, kFaceDim>;
+using EdgeType = std::pair<int, int>;
+using IndexSet = std::set<int>;
 
 #endif //DEFORMABLECELLMODEL_DEFINITIONS_HPP

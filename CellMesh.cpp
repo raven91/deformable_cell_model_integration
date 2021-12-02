@@ -12,6 +12,7 @@
 #include <algorithm> // std::min, std::max, std::find, std::sort, std::set_difference
 #include <iterator> // std::distance, std::back_inserter
 #include <cassert>
+#include <numbers>
 
 CellMesh::CellMesh() :
     nodes_(),
@@ -80,7 +81,7 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
       e_3 = std::make_pair(std::min(n_0, n_2), std::max(n_0, n_2));
       const std::set<EdgeType> edges_per_face{e_1, e_2, e_3};
 
-      for (const EdgeType &edge : edges_per_face)
+      for (const EdgeType &edge: edges_per_face)
       {
         it = std::find(edges_.begin(), edges_.end(), edge);
         if (it != edges_.end()) // edge already exists
@@ -100,7 +101,7 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
     double initial_distance = 0.0;
     adjacent_nodes_for_nodes_.resize(n_nodes);
     initial_lenghts_between_adjacent_nodes_.resize(n_nodes);
-    for (const EdgeType &edge : edges_)
+    for (const EdgeType &edge: edges_)
     {
       adjacent_nodes_for_nodes_[edge.first].push_back(edge.second);
       adjacent_nodes_for_nodes_[edge.second].push_back(edge.first);
@@ -114,7 +115,7 @@ CellMesh::CellMesh(const std::string &off_fine_name, const Parameters &parameter
     adjacent_faces_for_nodes_.resize(n_nodes);
     for (int f = 0; f < faces_.size(); ++f)
     {
-      for (int vertex : faces_[f])
+      for (int vertex: faces_[f])
       {
         adjacent_faces_for_nodes_[vertex].insert(f);
       } // vertex
@@ -172,7 +173,7 @@ CellMesh::CellMesh(const std::string &off_plane_file_name) :
     adjacent_faces_for_nodes_.resize(n_nodes);
     for (int f = 0; f < faces_.size(); ++f)
     {
-      for (int vertex : faces_[f])
+      for (int vertex: faces_[f])
       {
         adjacent_faces_for_nodes_[vertex].insert(f);
       } // vertex
@@ -293,7 +294,7 @@ const std::vector<double> &CellMesh::CalculateNodeSurfaceAreas() const
   for (int i = 0; i < nodes_.size(); ++i)
   {
     double total_area = 0.0;
-    for (int face_index : adjacent_faces_for_nodes_[i])
+    for (int face_index: adjacent_faces_for_nodes_[i])
     {
       total_area += surface_areas_for_faces_[face_index];
     } // face
@@ -343,7 +344,7 @@ double CellMesh::CalculateCellSurfaceArea() const
 double CellMesh::CalculateCellVolume() const
 {
   VectorType center_of_mass{0.0, 0.0, 0.0};
-  for (const VectorType &node : nodes_)
+  for (const VectorType &node: nodes_)
   {
     center_of_mass += node;
   } // node
@@ -352,7 +353,7 @@ double CellMesh::CalculateCellVolume() const
   double volume = 0.0;
   VectorType p_0(center_of_mass), p_1, p_2, p_3;
   int n_1, n_2, n_3;
-  for (const FaceType &face : faces_)
+  for (const FaceType &face: faces_)
   {
     n_1 = face[0];
     n_2 = face[1];
@@ -368,7 +369,7 @@ double CellMesh::CalculateCellVolume() const
 void CellMesh::MakeFacesOriented()
 {
   VectorType center_of_mass = VectorType::Zero();
-  for (const VectorType &node : nodes_)
+  for (const VectorType &node: nodes_)
   {
     center_of_mass += node;
   } // node
@@ -376,7 +377,7 @@ void CellMesh::MakeFacesOriented()
 
   Eigen::Vector3d p_0(center_of_mass), p_1, p_2, p_3, p_12, p_23;
   int n_1, n_2, n_3;
-  for (FaceType &face : faces_)
+  for (FaceType &face: faces_)
   {
     n_1 = face[0];
     n_2 = face[1];
@@ -426,7 +427,7 @@ const std::vector<VectorType> &CellMesh::CalculateNodeNormals() const
   for (int i = 0; i < nodes_.size(); ++i)
   {
     VectorType node_normal = VectorType::Zero();
-    for (int face_index : adjacent_faces_for_nodes_[i])
+    for (int face_index: adjacent_faces_for_nodes_[i])
     {
       node_normal += normals_for_faces_[face_index];
     } // face_index
@@ -477,7 +478,7 @@ const std::vector<VectorType> &CellMesh::CalculateNodeCurvatures() const
   for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
   {
     VectorType curvature = VectorType::Zero();
-    for (int adjacent_node_idx : adjacent_nodes_for_nodes_[node_idx])
+    for (int adjacent_node_idx: adjacent_nodes_for_nodes_[node_idx])
     {
       EdgeType edge(std::min(node_idx, adjacent_node_idx), std::max(node_idx, adjacent_node_idx));
       std::vector<EdgeType>::const_iterator e_it = std::find(edges_.begin(), edges_.end(), edge);
@@ -519,8 +520,8 @@ const std::vector<VectorType> &CellMesh::CalculateNodeCurvatures() const
       p_02 = (p_2 - p_0).normalized();
       double beta = std::acos(p_01.dot(p_02));
 
-      curvature +=
-          (std::tan(M_PI_2 - alpha) + std::tan(M_PI_2 - beta)) * (nodes_[node_idx] - nodes_[adjacent_node_idx]);
+      curvature += (std::tan(std::numbers::pi / 2.0 - alpha) + std::tan(std::numbers::pi / 2.0 - beta))
+          * (nodes_[node_idx] - nodes_[adjacent_node_idx]);
     } // adjacent_node_idx
     curvature /= (2.0 * surface_areas_for_nodes_[node_idx]);
     curvatures_for_nodes_[node_idx] = curvature;

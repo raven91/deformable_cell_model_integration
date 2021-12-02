@@ -10,6 +10,7 @@
 #include <algorithm> // std::set_difference, std::sort
 #include <iterator> // std::back_inserter
 #include <unordered_map>
+#include <numbers>
 
 EquationsOfMotion::EquationsOfMotion(const Parameters &parameters) :
     parameters_(parameters),
@@ -360,7 +361,7 @@ void EquationsOfMotion::CellToPlaneContactForce(const CellMesh &cell_mesh, Eigen
         double E_hat = 1.0 / ((2.0 - 2.0 * parameters_.GetCortexPoissonRatio() * parameters_.GetCortexPoissonRatio())
             / (parameters_.GetCortexYoungsModulus() * 1e2));
         double R_hat = 1.0 / (1.0 / radius_1 + 1.0 / radius_2);
-        double p_r = 2.0 * E_hat / (M_PI * R_hat)
+        double p_r = 2.0 * E_hat / (std::numbers::pi * R_hat)
             * std::sqrt(contact_plane_radius_squared - (closest_point - c_0).squaredNorm());
         double contact_area = TriangleArea(p_1_proj, p_2_proj, p_3_proj);
         force *= contact_area * p_r;
